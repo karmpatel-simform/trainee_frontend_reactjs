@@ -1,101 +1,148 @@
 import React, { useState } from "react";
 import { addProduct } from '../../api/api';
+import { Upload, X, Check, AlertCircle } from "lucide-react";
 
 const AddPage = () => {
   const [imageUrl, setImageUrl] = useState("");
   const [product, setProduct] = useState({ name: "", description: "", price: "" });
-  const [successMessage, setSuccessMessage] = useState(""); // State for success alert
-  const [errorMessage, setErrorMessage] = useState(""); // State for error message
+  const [successMessage, setSuccessMessage] = useState("");
+  const [errorMessage, setErrorMessage] = useState("");
+  const [loading, setLoading] = useState(false);
 
   const handleChange = (e) => setProduct({ ...product, [e.target.name]: e.target.value });
   const handleImageUrlChange = (e) => setImageUrl(e.target.value);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setLoading(true);
 
-    const productData = { name: product.name, description: product.description, price: product.price, image: imageUrl };
+    const productData = { 
+      name: product.name, 
+      description: product.description, 
+      price: product.price, 
+      image: imageUrl 
+    };
+
     try {
       await addProduct(productData);
-      setSuccessMessage("Product added successfully!"); // Show success message
-      setErrorMessage(""); // Clear any previous error messages
+      setSuccessMessage("Product added successfully!");
+      setErrorMessage("");
+      setProduct({ name: "", description: "", price: "" });
+      setImageUrl("");
     } catch (error) {
-      setErrorMessage("Error adding product. Please try again."); // Set error message
-      setSuccessMessage(""); // Clear success message
+      setErrorMessage("Error adding product. Please try again.");
+      setSuccessMessage("");
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
-    <div className="flex justify-center items-center min-h-screen bg-gray-50">
-      <div className="w-full max-w-lg p-6 bg-white rounded-lg shadow-md">
-        <h1 className="text-2xl font-semibold text-center text-gray-800 mb-6">Add New Product</h1>
+    <div className="max-w-2xl mx-auto bg-white rounded-xl shadow-sm overflow-hidden">
+      <div className="p-8">
+        <h2 className="text-2xl font-semibold text-gray-800 mb-6">Add New Product</h2>
 
-        {/* Success Alert */}
         {successMessage && (
-          <div className="bg-green-500 text-white p-3 mb-4 rounded-lg text-center">
-            {successMessage}
+          <div className="flex items-center bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-lg mb-6">
+            <Check size={20} className="mr-2" />
+            <p>{successMessage}</p>
           </div>
         )}
 
-        {/* Error Alert */}
         {errorMessage && (
-          <div className="bg-red-500 text-white p-3 mb-4 rounded-lg text-center">
-            {errorMessage}
+          <div className="flex items-center bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-6">
+            <AlertCircle size={20} className="mr-2" />
+            <p>{errorMessage}</p>
           </div>
         )}
 
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-6">
           <div>
-            <label className="block text-sm font-medium text-gray-700">Product Name</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Product Name</label>
             <input
               type="text"
               name="name"
               value={product.name}
               onChange={handleChange}
-              placeholder="Enter Product Name"
-              className="w-full p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-300"
+              placeholder="Enter product name"
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+              required
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700">Description</label>
-            <input
-              type="text"
+            <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
+            <textarea
               name="description"
               value={product.description}
               onChange={handleChange}
-              placeholder="Enter Description"
-              className="w-full p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-300"
+              placeholder="Enter product description"
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 h-24"
+              required
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700">Product Price</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Price ($)</label>
             <input
               type="text"
               name="price"
               value={product.price}
               onChange={handleChange}
-              placeholder="Enter Product Price"
-              className="w-full p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-300"
+              placeholder="0.00"
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+              required
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700">Image URL</label>
-            <input
-              type="text"
-              value={imageUrl}
-              onChange={handleImageUrlChange}
-              placeholder="Enter Image URL"
-              className="w-full p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-300"
-            />
+            <label className="block text-sm font-medium text-gray-700 mb-1">Image URL</label>
+            <div className="flex">
+              <input
+                type="text"
+                value={imageUrl}
+                onChange={handleImageUrlChange}
+                placeholder="https://example.com/image.jpg"
+                className="w-full px-4 py-2 border border-gray-300 rounded-l-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+              />
+              <div className="bg-gray-100 border border-l-0 border-gray-300 rounded-r-lg px-3 flex items-center">
+                <Upload size={20} className="text-gray-500" />
+              </div>
+            </div>
           </div>
+
+          {imageUrl && (
+            <div className="mt-2 relative w-full h-40 bg-gray-100 rounded-lg overflow-hidden">
+              <img
+                src={imageUrl}
+                alt="Product Preview"
+                className="w-full h-full object-cover"
+                onError={(e) => {
+                  e.target.src = "/api/placeholder/320/160";
+                  e.target.alt = "Invalid image URL";
+                }}
+              />
+              <button
+                type="button"
+                onClick={() => setImageUrl("")}
+                className="absolute top-2 right-2 p-1 bg-white rounded-full shadow-md hover:bg-gray-100"
+              >
+                <X size={16} />
+              </button>
+            </div>
+          )}
 
           <button
             type="submit"
-            className="w-full py-3 bg-teal-500 text-white rounded-lg hover:bg-teal-600 transition duration-300"
+            disabled={loading}
+            className={`w-full py-3 px-4 font-medium rounded-lg text-white ${
+              loading ? "bg-indigo-400" : "bg-indigo-600 hover:bg-indigo-700"
+            } transition duration-200 flex justify-center items-center`}
           >
-            Add Product
+            {loading ? (
+              <span className="inline-block h-5 w-5 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></span>
+            ) : null}
+            {loading ? "Adding Product..." : "Add Product"}
           </button>
         </form>
       </div>
