@@ -64,7 +64,7 @@ For installation instructions for other operating systems (macOS, Windows), foll
 
 ```bash
 git clone <url>
-cd trainne_frontend_nodejs
+cd trainee_frontend_reactjs
 ```
 
 ### 2. Set Up Environment Variables
