@@ -4,15 +4,23 @@ import Layout from "./page/Layout";
 import ListPage from "./components/Admin/GetProduct";
 import EditPage from "./components/Admin/EditProduct";
 import AddPage from "./components/Admin/AddProduct";
+import Login from "./components/Auth/Login";
+import Signup from "./components/Auth/SignUp";
+import HomePage from "./page/Landing";
+import PrivateRoute from "./api/PrivateRoute";
 
 const App = () => {
   return (
     <BrowserRouter>
       <Routes>
-        <Route path="/" element={<Layout />}>
-          <Route path="/productlist" element={<ListPage />} />
-          <Route path="/productedit" element={<EditPage />} />
-          <Route path="/productadd" element={<AddPage />} />
+        <Route path="/" element={<HomePage />} />
+        <Route path="/login" element={<Login />} />
+        <Route path="/signup" element={<Signup />} />
+        
+        <Route path="/dashboard" element={<PrivateRoute element={<Layout />} />}>
+          <Route path="productlist" element={<PrivateRoute element={<ListPage />} />} />
+          <Route path="productedit" element={<PrivateRoute element={<EditPage />} />} />
+          <Route path="productadd" element={<PrivateRoute element={<AddPage />} />} />
         </Route>
       </Routes>
     </BrowserRouter>

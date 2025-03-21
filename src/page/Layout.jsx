@@ -1,13 +1,36 @@
-import React from "react";
-import { Link, Outlet, useLocation } from "react-router-dom";
+import React, { useEffect, useState } from "react";
+import { Link, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { Package, Edit, Plus, Home } from "lucide-react";
+import { authService } from '../api/authService'; // Adjust path to your authService
 
 const Layout = () => {
+  const [username, setUsername] = useState('');
   const location = useLocation();
+  const navigate = useNavigate();
 
   const isActive = (path) => {
     return location.pathname === path;
   };
+
+  const handleLogout = () => {
+    authService.logout();
+    navigate("/login"); // Redirect to login after logging out
+  };
+
+  useEffect(() => {
+    const fetchCurrentUser = async () => {
+      try {
+        const user = await authService.getCurrentUser();
+        setUsername(user.data.name); // Access the 'name' field from the response
+      } catch (error) {
+        console.error("Error fetching current user:", error);
+      }
+    };
+
+    if (authService.isAuthenticated()) {
+      fetchCurrentUser();
+    }
+  }, []);
 
   return (
     <div className="flex min-h-screen bg-gray-100">
@@ -18,9 +41,9 @@ const Layout = () => {
           
           <nav className="space-y-2">
             <Link
-              to="/"
+              to="/dashboard"
               className={`flex items-center px-4 py-3 rounded-lg transition duration-200 ${
-                isActive("/") 
+                isActive("/dashboard") 
                   ? "bg-indigo-600 text-white" 
                   : "text-gray-600 hover:bg-gray-100"
               }`}
@@ -30,9 +53,9 @@ const Layout = () => {
             </Link>
 
             <Link
-              to="/productlist"
+              to="/dashboard/productlist"
               className={`flex items-center px-4 py-3 rounded-lg transition duration-200 ${
-                isActive("/productlist") 
+                isActive("/dashboard/productlist") 
                   ? "bg-indigo-600 text-white" 
                   : "text-gray-600 hover:bg-gray-100"
               }`}
@@ -42,9 +65,9 @@ const Layout = () => {
             </Link>
 
             <Link
-              to="/productedit"
+              to="/dashboard/productedit"
               className={`flex items-center px-4 py-3 rounded-lg transition duration-200 ${
-                isActive("/productedit") 
+                isActive("/dashboard/productedit") 
                   ? "bg-indigo-600 text-white" 
                   : "text-gray-600 hover:bg-gray-100"
               }`}
@@ -54,9 +77,9 @@ const Layout = () => {
             </Link>
 
             <Link
-              to="/productadd"
+              to="/dashboard/productadd"
               className={`flex items-center px-4 py-3 rounded-lg transition duration-200 ${
-                isActive("/productadd") 
+                isActive("/dashboard/productadd") 
                   ? "bg-indigo-600 text-white" 
                   : "text-gray-600 hover:bg-gray-100"
               }`}
@@ -78,8 +101,14 @@ const Layout = () => {
               {location.pathname === "/productadd" && "Add Product"}
             </h1>
             <div className="flex items-center">
-              <span className="text-sm font-medium text-gray-700">Admin User</span>
+              <span className="text-sm font-medium text-gray-700">{username}</span> {/* Display username */}
             </div>
+            <button
+              onClick={handleLogout}
+              className="flex items-center px-4 py-3 rounded-lg transition duration-200"
+            >
+              <span>Log Out</span>
+            </button>
           </div>
         </header>
 
@@ -92,3 +121,4 @@ const Layout = () => {
 };
 
 export default Layout;
+
