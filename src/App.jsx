@@ -8,6 +8,7 @@ import Login from "./components/Auth/Login";
 import Signup from "./components/Auth/SignUp";
 import HomePage from "./page/Landing";
 import PrivateRoute from "./api/PrivateRoute";
+import PageNotFound from "./page/404";
 
 const App = () => {
   return (
@@ -22,6 +23,13 @@ const App = () => {
           <Route path="productedit" element={<PrivateRoute element={<EditPage />} />} />
           <Route path="productadd" element={<PrivateRoute element={<AddPage />} />} />
         </Route>
+
+        <Route
+              path="*"
+              element={<PageNotFound />}
+        />
+
+        
       </Routes>
     </BrowserRouter>
   );
