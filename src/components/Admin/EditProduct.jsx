@@ -306,18 +306,20 @@ const EditPage = () => {
                         </p>
                         <div className="flex justify-between items-center mt-4">
                           <span className="font-semibold text-indigo-600">${product.price}</span>
-                          <button
-                            onClick={() => handleEditButtonClick(product.id)}
-                            className="px-4 py-1 bg-indigo-50 text-indigo-600 rounded hover:bg-indigo-100 transition-colors"
-                          >
-                            Edit
-                          </button>
-                          <button
-                            onClick={() => handleDeleteButtonClick(product.id)}
-                            className="px-4 py-1 bg-indigo-50 text-indigo-600 rounded hover:bg-indigo-100 transition-colors"
-                          >
-                            Delete
-                          </button>
+                          <div className="ml-auto flex space-x-2">
+                            <button
+                              onClick={() => handleEditButtonClick(product.id)}
+                              className="px-4 py-1 bg-indigo-50 text-indigo-600 rounded hover:bg-indigo-100 transition-colors"
+                            >
+                              Edit
+                            </button>
+                            <button
+                              onClick={() => handleDeleteButtonClick(product.id)}
+                              className="px-4 py-1 bg-indigo-50 text-red-600 rounded hover:bg-indigo-100 transition-colors"
+                            >
+                              Delete
+                            </button>
+                          </div>
                         </div>
                       </div>
                     </div>
