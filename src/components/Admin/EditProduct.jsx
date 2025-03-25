@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { getProducts, editProduct } from '../../api/api';
+import { getProducts, editProduct , deleteProduct} from '../../api/api';
 import { ChevronLeft, Save, X, Image, DollarSign, Tag, FileText } from 'lucide-react';
 
 const EditPage = () => {
@@ -31,6 +31,29 @@ const EditPage = () => {
     const productToEdit = products.find((prod) => prod.id === productId);
     setSelectedProduct(productToEdit);
     window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+
+  const handleDeleteButtonClick = async (productId) => {
+    const productToEdit = products.find((prod) => prod.id === productId);
+    if (!productToEdit.id) {
+      setError('Please select a product to edit.');
+      return;
+    }
+
+    setLoading(true);
+
+    try {
+      await deleteProduct(productToEdit.id);
+      setLoading(false);
+      setSuccessMessage("Product Deleted successfully!"); 
+      setErrorMessage("");
+      setSelectedProduct(null); 
+    } catch (err) {
+      setLoading(false);
+      setErrorMessage('Failed to Delete the product');
+      setSuccessMessage(""); 
+    }
   };
 
   const handleChange = (e) => {
@@ -288,6 +311,12 @@ const EditPage = () => {
                             className="px-4 py-1 bg-indigo-50 text-indigo-600 rounded hover:bg-indigo-100 transition-colors"
                           >
                             Edit
+                          </button>
+                          <button
+                            onClick={() => handleDeleteButtonClick(product.id)}
+                            className="px-4 py-1 bg-indigo-50 text-indigo-600 rounded hover:bg-indigo-100 transition-colors"
+                          >
+                            Delete
                           </button>
                         </div>
                       </div>

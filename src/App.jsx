@@ -9,6 +9,7 @@ import Signup from "./components/Auth/SignUp";
 import HomePage from "./page/Landing";
 import PrivateRoute from "./api/PrivateRoute";
 import PageNotFound from "./page/404";
+import LandingPage from "./page/Landing/Landing";
 
 const App = () => {
   return (
@@ -24,6 +25,7 @@ const App = () => {
           <Route path="productadd" element={<PrivateRoute element={<AddPage />} />} />
         </Route>
 
+        <Route path="/console" element={<LandingPage/>} />
         <Route
               path="*"
               element={<PageNotFound />}
