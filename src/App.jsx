@@ -10,6 +10,7 @@ import HomePage from "./page/Landing";
 import PrivateRoute from "./api/PrivateRoute";
 import PageNotFound from "./page/404";
 import LandingPage from "./page/Landing/Landing";
+import CartPage from "./components/Cart/Cart";  // Import CartPage
 
 const App = () => {
   return (
@@ -18,20 +19,17 @@ const App = () => {
         <Route path="/" element={<HomePage />} />
         <Route path="/login" element={<Login />} />
         <Route path="/signup" element={<Signup />} />
-        
+
         <Route path="/dashboard" element={<PrivateRoute element={<Layout />} />}>
           <Route path="productlist" element={<PrivateRoute element={<ListPage />} />} />
           <Route path="productedit" element={<PrivateRoute element={<EditPage />} />} />
           <Route path="productadd" element={<PrivateRoute element={<AddPage />} />} />
         </Route>
 
-        <Route path="/console" element={<LandingPage/>} />
-        <Route
-              path="*"
-              element={<PageNotFound />}
-        />
+        <Route path="/console" element={<LandingPage />} />
+        <Route path="/cart" element={<CartPage />} />
 
-        
+        <Route path="*" element={<PageNotFound />} />
       </Routes>
     </BrowserRouter>
   );
