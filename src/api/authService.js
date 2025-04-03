@@ -38,7 +38,7 @@ export const authService = {
   getCurrentUser: async () => {
     try {
       const response = await api.get('/api/auth/me');
-      return response.data;  // Returns the entire user object, including the username
+      return response.data;
     } catch (error) {
       console.error("Error fetching current user:", error);
       throw error;  // Optionally, handle the error based on your needs

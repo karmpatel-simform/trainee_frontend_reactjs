@@ -1,0 +1,16 @@
+FROM node:22-alpine as build
+ARG VITE_BACKENDURL
+WORKDIR /usr/src/app
+COPY package*.json ./
+RUN npm install
+COPY . .
+ENV VITE_BACKENDURL=$VITE_BACKENDURL
+RUN npm run build
+
+FROM nginx:1.21.6 as production
+COPY --from=build /usr/src/app/dist /usr/share/nginx/html
+RUN rm /etc/nginx/conf.d/default.conf
+COPY --from=build /usr/src/app/nginx.conf /etc/nginx/conf.d/default.conf
+VOLUME ["/var/log/nginx"]
+EXPOSE 80
+CMD ["nginx", "-g", "daemon off;"] 

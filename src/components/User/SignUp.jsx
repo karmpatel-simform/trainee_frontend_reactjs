@@ -14,14 +14,26 @@ const SignUp = ({ onClose, onSuccess }) => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      await authService.register(signUpData);
-      localStorage.setItem('token', response.token);          
-      toast.success('Login successful!');
-      onSuccess();  // Notify parent component about successful signup
-      onClose();  // Close the modal after successful signup
+      const response = await authService.register(signUpData);
+      console.log('Status:', response.status);
+      console.log('Response Data:', response.data);
+    
+      if (response.status === 201 && response.data?.token) {
+        localStorage.setItem('token', response.data.token);
+        toast.success('Sign up successful!');
+        onSuccess();
+        onClose();
+      } else if (response.status === 204) {
+        toast.success('Sign up successful!');
+        onSuccess();
+        onClose();
+      } else {
+        onSuccess();
+      }
     } catch (err) {
-      setError('Sign up failed');
-    }
+      console.error('Error:', err);
+      setError(err.message || 'Sign up failed');
+    }      
   };
 
   const handleInputChange = (e) => {

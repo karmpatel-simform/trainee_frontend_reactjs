@@ -13,6 +13,12 @@ import { getProducts } from '../../api/api';
 import { authService } from '../../api/authService';
 import Login from '../../components/User/Login';
 import SignUp from '../../components/User/SignUp';
+import axios from 'axios';
+
+import { toast } from 'react-hot-toast';
+
+
+const API_URL = import.meta.env.VITE_BACKENDURL || 'http://localhost:5000';
 
 const LoginModal = ({ isOpen, onClose }) => {
   const [isSignUp, setIsSignUp] = useState(false); 
@@ -21,8 +27,9 @@ const LoginModal = ({ isOpen, onClose }) => {
   if (!isOpen) return null;
 
   const handleSuccess = () => {
-    // After successful login/signup, redirect to dashboard
+    toast.success('Login successful!');
     navigate('/console');
+
     onClose(); // Close the modal
   };
 
@@ -119,17 +126,28 @@ const ProductCard = ({ product, canPurchase, onAddToCart, onAddToWishlist }) => 
   );
 };
 
-// Landing Page Component
 const LandingPage = () => {
   const [products, setProducts] = useState([]);
   const [isLoginOpen, setIsLoginOpen] = useState(false);
-  const [user, setUser] = useState(null);
+  const [user, setUser] = useState(localStorage.getItem('guestId'));
   const [searchTerm, setSearchTerm] = useState('');
   const [cart, setCart] = useState([]);
   const [wishlist, setWishlist] = useState([]);
   const navigate = useNavigate();
+  
+  // Generate a guest ID for non-logged in users
+  const [guestId, setGuestId] = useState('');
 
   useEffect(() => {
+
+  let storedGuestId = localStorage.getItem('guestId');
+  if (!storedGuestId) {
+    storedGuestId = 'guest_' + Math.random().toString(36).substring(2, 15);
+    localStorage.setItem('guestId', storedGuestId);
+  }
+  setGuestId(storedGuestId);
+  fetchGuestCart(storedGuestId);
+  
     const fetchProducts = async () => {
       try {
         const fetchedProducts = await getProducts();
@@ -138,39 +156,116 @@ const LandingPage = () => {
         console.error('Failed to fetch products:', error);
       }
     };
-
-    const checkAuth = () => {
-      const isAuth = authService.isAuthenticated();
-      if (isAuth){
-        setUser("User");
+  
+    const checkAuth = async () => {
+      try {
+        const isAuth = authService.isAuthenticated();
+        if (isAuth) {
+          // Await the promise to resolve
+          const userData = await authService.getCurrentUser(); 
+          setUser(userData.data.id); // Accessing the resolved user data
+          fetchUserCart(userData.data.id);
+        } else {
+          // Guest ID handling
+          let storedGuestId = localStorage.getItem('guestId');
+          if (!storedGuestId) {
+            storedGuestId = 'guest_' + Math.random().toString(36).substring(2, 15);
+            localStorage.setItem('guestId', storedGuestId);
+          }
+          setGuestId(storedGuestId);
+          fetchGuestCart(storedGuestId);
+        }
+      } catch (error) {
+        console.error('Error during auth check:', error);
       }
-
     };
-
+  
     fetchProducts();
     checkAuth();
-  }, []);
+  }, [user]);
+  
+  
+
+  // Fetch user's cart from Redis/DB
+  const fetchUserCart = async (userId) => {
+    try {
+      const response = await axios.get(`${API_URL}/api/cart/${userId}`);
+      setCart(response.data);
+    } catch (error) {
+      console.error('Error fetching user cart:', error);
+    }
+  };
+
+  // Fetch guest cart from Redis
+  const fetchGuestCart = async (guestId) => {
+    try {
+      const response = await axios.get(`${API_URL}/api/cart/${guestId}`);
+      setCart(response.data);
+    } catch (error) {
+      console.error('Error fetching guest cart:', error);
+    }
+  };
 
   const handleLogout = () => {
     authService.logout();
     setUser(null);
+    // Clear cart on logout
+    setCart([]);
     navigate('/console');
   };
 
-  const handleAddToCart = (product) => {
-    if (!user) {
-      setIsLoginOpen(true);
-      return;
+  
+  const handleAddToCart = async (product) => {
+    const currentUserId = localStorage.getItem('guestId');
+
+    if (!currentUserId) {
+        console.error('No user ID or guest ID available');
+        toast.error('Login Required!');
+        return;
     }
-    setCart(prevCart => [...prevCart, product]);
-  };
+
+    try {
+        console.log(`Adding product to cart for user/guest: ${currentUserId}`);
+
+        const response = await axios.post(`${API_URL}/api/cart/add`, {
+            userId: currentUserId,
+            productId: product.id,
+            quantity: 1,
+        });
+
+        // Directly update the cart with product details
+        setCart(response.data.cart);
+
+        console.log('Product added to cart:', response.data.cart);
+    } catch (error) {
+        console.error('Error adding to cart:', error.response ? error.response.data : error);
+        toast.alert('Failed to add item to cart. Please try again.');
+    }
+};
+
+  
+  
 
   const handleAddToWishlist = (product) => {
     if (!user) {
       setIsLoginOpen(true);
       return;
     }
+    // Wishlist functionality remains unchanged as it typically requires an account
     setWishlist(prevWishlist => [...prevWishlist, product]);
+  };
+
+  const handleCartClick = () => {
+    if (user) {
+      navigate('/cart');
+    } else {
+      // For guest users, we can either prompt them to login or allow guest checkout
+      if (cart.length > 0) {
+        navigate('/cart'); // Allow access to cart page even for guests
+      } else {
+        setIsLoginOpen(true);
+      }
+    }
   };
 
   const filteredProducts = products.filter(product => 
@@ -210,7 +305,7 @@ const LandingPage = () => {
               </button>
               <button 
                 className="relative hover:text-blue-600"
-                onClick={() => user ? navigate('/cart') : setIsLoginOpen(true)}
+                onClick={handleCartClick}
               >
                 <ShoppingCart size={24} />
                 {cart.length > 0 && (
@@ -255,7 +350,7 @@ const LandingPage = () => {
             <ProductCard 
               key={product.id} 
               product={product} 
-              canPurchase={!!user}
+              canPurchase={true} // Allow all users (including guests) to add to cart
               onAddToCart={handleAddToCart}
               onAddToWishlist={handleAddToWishlist}
             />
