@@ -27,3 +27,6 @@ provider "azurerm" {
 provider "null" {
 
 }
+
+
+ 
