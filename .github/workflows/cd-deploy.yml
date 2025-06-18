@@ -3,54 +3,86 @@ name: CD - Terraform & Deploy Static Site
 on:
   workflow_run:
     workflows: ["CI - Build Static Site"]
-    types: [completed]
+    types:
+      - completed
 
 jobs:
   deploy:
     if: ${{ github.event.workflow_run.conclusion == 'success' }}
     runs-on: ubuntu-latest
-
-    env:
-      ARM_CLIENT_ID: ${{ secrets.ARM_CLIENT_ID }}
-      ARM_CLIENT_SECRET: ${{ secrets.ARM_CLIENT_SECRET }}
-      ARM_TENANT_ID: ${{ secrets.ARM_TENANT_ID }}
-      ARM_SUBSCRIPTION_ID: ${{ secrets.ARM_SUBSCRIPTION_ID }}
-      BUILD_VERSION: ${{ github.event.workflow_run.outputs.build_version }}
-
+    
+    permissions:
+      contents: read
+      actions: read
+    
     steps:
       - name: Download build artifact
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
-          name: static-site-build-${{ env.BUILD_VERSION }}
+          name: static-site-build
           path: ./dist
-
-      - name: Checkout Terraform code
-        uses: actions/checkout@v3
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          run-id: ${{ github.event.workflow_run.id }}
+      
+      - name: Download build version
+        uses: actions/download-artifact@v4
         with:
-          path: terraform
-
+          name: build-version
+          path: ./build-info
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          run-id: ${{ github.event.workflow_run.id }}
+      
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      
       - name: Setup Terraform
-        uses: hashicorp/setup-terraform@v2
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_wrapper: false
+      
+      - name: List files for debugging
+        run: |
+          echo "Repository root contents:"
+          ls -la
+          echo "Terraform directory contents:"
+          ls -la terraform/
+          echo "Terraform files found:"
+          find terraform/ -name "*.tf" -type f
 
+      
       - name: Azure CLI Login with ARM credentials
         run: |
           az login --service-principal -u $ARM_CLIENT_ID -p $ARM_CLIENT_SECRET --tenant $ARM_TENANT_ID
-
+      
       - name: Terraform Init
         working-directory: terraform
         run: terraform init
-
+        env:
+          ARM_CLIENT_ID: ${{ secrets.ARM_CLIENT_ID }}
+          ARM_CLIENT_SECRET: ${{ secrets.ARM_CLIENT_SECRET }}
+          ARM_SUBSCRIPTION_ID: ${{ secrets.ARM_SUBSCRIPTION_ID }}
+          ARM_TENANT_ID: ${{ secrets.ARM_TENANT_ID }}
+      
+      - name: Terraform Plan
+        working-directory: terraform
+        run: terraform plan
+      
       - name: Terraform Apply
         working-directory: terraform
         run: terraform apply -auto-approve
-
+      
       - name: Get Terraform Outputs
         id: tf_outputs
         working-directory: terraform
         run: |
           echo "account_name=$(terraform output -raw storage_account_name)" >> $GITHUB_OUTPUT
           echo "account_key=$(terraform output -raw storage_account_primary_access_key)" >> $GITHUB_OUTPUT
-
+      
+      - name: Setup Azure CLI
+        uses: azure/CLI@v2
+        with:
+          azcliversion: latest
+      
       - name: Deploy static files to Azure Blob Storage
         run: |
           az storage blob upload-batch \
