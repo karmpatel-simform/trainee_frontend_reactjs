@@ -10,11 +10,19 @@ jobs:
   deploy:
     if: ${{ github.event.workflow_run.conclusion == 'success' }}
     runs-on: ubuntu-latest
-    
+    environment: production
+
+    # 👇 Set Azure credentials at job level
+    env:
+      ARM_CLIENT_ID: ${{ secrets.ARM_CLIENT_ID }}
+      ARM_CLIENT_SECRET: ${{ secrets.ARM_CLIENT_SECRET }}
+      ARM_SUBSCRIPTION_ID: ${{ secrets.ARM_SUBSCRIPTION_ID }}
+      ARM_TENANT_ID: ${{ secrets.ARM_TENANT_ID }}
+
     permissions:
       contents: read
       actions: read
-    
+
     steps:
       - name: Download build artifact
         uses: actions/download-artifact@v4
@@ -23,7 +31,7 @@ jobs:
           path: ./dist
           github-token: ${{ secrets.GITHUB_TOKEN }}
           run-id: ${{ github.event.workflow_run.id }}
-      
+
       - name: Download build version
         uses: actions/download-artifact@v4
         with:
@@ -31,15 +39,15 @@ jobs:
           path: ./build-info
           github-token: ${{ secrets.GITHUB_TOKEN }}
           run-id: ${{ github.event.workflow_run.id }}
-      
+
       - name: Checkout repository
         uses: actions/checkout@v4
-      
+
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
         with:
           terraform_wrapper: false
-      
+
       - name: List files for debugging
         run: |
           echo "Repository root contents:"
@@ -48,36 +56,31 @@ jobs:
           ls -la terraform/
           echo "Terraform files found:"
           find terraform/ -name "*.tf" -type f
-      
+
       - name: Terraform Init
         working-directory: terraform
         run: terraform init
-        env:
-          ARM_CLIENT_ID: ${{ secrets.ARM_CLIENT_ID }}
-          ARM_CLIENT_SECRET: ${{ secrets.ARM_CLIENT_SECRET }}
-          ARM_SUBSCRIPTION_ID: ${{ secrets.ARM_SUBSCRIPTION_ID }}
-          ARM_TENANT_ID: ${{ secrets.ARM_TENANT_ID }}
-      
+
       - name: Terraform Plan
         working-directory: terraform
         run: terraform plan
-      
+
       - name: Terraform Apply
         working-directory: terraform
         run: terraform apply -auto-approve
-      
+
       - name: Get Terraform Outputs
         id: tf_outputs
         working-directory: terraform
         run: |
           echo "account_name=$(terraform output -raw storage_account_name)" >> $GITHUB_OUTPUT
           echo "account_key=$(terraform output -raw storage_account_primary_access_key)" >> $GITHUB_OUTPUT
-      
+
       - name: Setup Azure CLI
         uses: azure/CLI@v2
         with:
           azcliversion: latest
-      
+
       - name: Deploy static files to Azure Blob Storage
         run: |
           az storage blob upload-batch \
