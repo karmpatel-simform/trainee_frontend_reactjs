@@ -10,49 +10,59 @@ jobs:
   deploy:
     if: ${{ github.event.workflow_run.conclusion == 'success' }}
     runs-on: ubuntu-latest
-
-    env:
-      BUILD_VERSION: ${{ github.event.workflow_run.outputs.build_version }}
-
+    
+    permissions:
+      contents: read
+      actions: read
+    
     steps:
       - name: Download build artifact
         uses: actions/download-artifact@v4
         with:
           name: static-site-build-${{ github.event.workflow_run.outputs.build_version }}
           path: ./dist
-
-
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          run-id: ${{ github.event.workflow_run.id }}
+      
       - name: Checkout Terraform code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           path: terraform
-
+      
       - name: Setup Terraform
-        uses: hashicorp/setup-terraform@v2
-
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_wrapper: false
+      
       - name: Terraform Init
         working-directory: terraform
         run: terraform init
-
+      
+      - name: Terraform Plan
+        working-directory: terraform
+        run: terraform plan
+      
       - name: Terraform Apply
         working-directory: terraform
         run: terraform apply -auto-approve
-
+      
       - name: Get Terraform Outputs
         id: tf_outputs
         working-directory: terraform
         run: |
           echo "account_name=$(terraform output -raw storage_account_name)" >> $GITHUB_OUTPUT
           echo "account_key=$(terraform output -raw storage_account_primary_access_key)" >> $GITHUB_OUTPUT
-
-      - name: Install Azure CLI
-        uses: azure/setup-azcli@v3
-
-
+      
+      - name: Setup Azure CLI
+        uses: azure/CLI@v2
+        with:
+          azcliversion: latest
+      
       - name: Deploy static files to Azure Blob Storage
         run: |
           az storage blob upload-batch \
             --account-name ${{ steps.tf_outputs.outputs.account_name }} \
             --account-key ${{ steps.tf_outputs.outputs.account_key }} \
             --source ./dist \
-            --destination '$web'
+            --destination '$web' \
+            --overwrite
