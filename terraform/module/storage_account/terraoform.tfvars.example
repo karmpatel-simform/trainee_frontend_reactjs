@@ -1,0 +1,191 @@
+# Example 1: Basic Storage Account (Minimal Configuration)
+module "basic_storage" {
+  source = "./modules/storage_account"
+
+  storage_account_name = "mybasicstorage123"
+  resource_group_name  = "my-rg"
+  location            = "East US"
+
+  tags = {
+    Environment = "dev"
+    Purpose     = "basic-storage"
+  }
+}
+
+# Example 2: Static Website Only
+module "static_website_storage" {
+  source = "./modules/storage_account"
+
+  storage_account_name = "mystaticsite123"
+  resource_group_name  = "my-rg"
+  location            = "East US"
+
+  # Enable static website hosting
+  enable_static_website              = true
+  static_website_index_document      = "index.html"
+  static_website_error_404_document  = "404.html"
+
+  # Enable CORS for web access
+  enable_blob_cors = true
+  blob_cors_rules = [{
+    allowed_headers    = ["*"]
+    allowed_methods    = ["GET", "HEAD"]
+    allowed_origins    = ["https://mydomain.com", "https://www.mydomain.com"]
+    exposed_headers    = ["*"]
+    max_age_in_seconds = 3600
+  }]
+
+  tags = {
+    Environment = "production"
+    Purpose     = "static-website"
+  }
+}
+
+# Example 3: Secure Storage with Network Rules
+module "secure_storage" {
+  source = "./modules/storage_account"
+
+  storage_account_name     = "mysecurestorage123"
+  resource_group_name      = "my-rg"
+  location                = "East US"
+  account_replication_type = "GRS"
+
+  # Enable system assigned identity
+  enable_system_assigned_identity = true
+
+  # Enable network rules
+  enable_network_rules           = true
+  network_rules_default_action   = "Deny"
+  network_rules_ip_rules         = ["203.0.113.0/24", "198.51.100.0/24"]
+  virtual_network_subnet_ids     = ["/subscriptions/.../subnets/my-subnet"]
+
+  tags = {
+    Environment = "production"
+    Purpose     = "secure-storage"
+  }
+}
+
+# Example 4: Premium Storage with Customer Managed Keys
+module "premium_storage" {
+  source = "./modules/storage_account"
+
+  storage_account_name     = "mypremiumstorage123"
+  resource_group_name      = "my-rg"
+  location                = "East US"
+  account_tier            = "Premium"
+  account_replication_type = "LRS"
+  account_kind            = "BlockBlobStorage"
+
+  # Enable customer managed encryption
+  enable_customer_managed_key   = true
+  key_vault_key_id             = "/subscriptions/.../keys/my-key"
+  user_assigned_identity_id    = "/subscriptions/.../identities/my-identity"
+
+  tags = {
+    Environment = "production"
+    Purpose     = "premium-storage"
+  }
+}
+
+# Example 5: File Storage with AD Authentication
+module "file_storage_with_ad" {
+  source = "./modules/storage_account"
+
+  storage_account_name     = "myfilestorage123"
+  resource_group_name      = "my-rg"
+  location                = "East US"
+  account_kind            = "FileStorage"
+  account_tier            = "Premium"
+
+  # Enable Azure Files AD authentication
+  enable_azure_files_authentication      = true
+  azure_files_directory_type             = "AD"
+  azure_files_default_share_permission   = "StorageFileDataSmbShareContributor"
+  
+  # AD configuration
+  ad_domain_name         = "mydomain.com"
+  ad_domain_guid         = "12345678-1234-1234-1234-123456789012"
+  ad_domain_sid          = "S-1-5-21-123456789-123456789-123456789"
+  ad_storage_sid         = "S-1-5-21-123456789-123456789-123456789-1001"
+  ad_forest_name         = "mydomain.com"
+  ad_netbios_domain_name = "MYDOMAIN"
+
+  tags = {
+    Environment = "production"
+    Purpose     = "file-share"
+  }
+}
+
+# Example 6: Complete Configuration (All Features)
+module "complete_storage" {
+  source = "./modules/storage_account"
+
+  storage_account_name     = "mycompletestore123"
+  resource_group_name      = "my-rg"
+  location                = "East US"
+  account_tier            = "Standard"
+  account_replication_type = "GRS"
+
+  # Enable all features
+  enable_system_assigned_identity        = true
+  enable_network_rules                  = true
+  enable_static_website                 = true
+  enable_blob_cors                      = true
+  enable_customer_managed_key           = true
+  enable_azure_files_authentication     = true
+
+  # Network rules
+  network_rules_default_action = "Deny"
+  network_rules_ip_rules       = ["203.0.113.0/24"]
+  virtual_network_subnet_ids   = ["/subscriptions/.../subnets/my-subnet"]
+
+  # Static website
+  static_website_index_document     = "index.html"
+  static_website_error_404_document = "error.html"
+
+  # CORS rules
+  blob_cors_rules = [{
+    allowed_headers    = ["*"]
+    allowed_methods    = ["GET", "POST", "PUT", "DELETE"]
+    allowed_origins    = ["https://mydomain.com"]
+    exposed_headers    = ["*"]
+    max_age_in_seconds = 7200
+  }]
+
+  # Customer managed key
+  key_vault_key_id          = "/subscriptions/.../keys/my-key"
+  user_assigned_identity_id = "/subscriptions/.../identities/my-identity"
+
+  # Azure Files AD auth
+  azure_files_directory_type           = "AD"
+  azure_files_default_share_permission = "StorageFileDataSmbShareContributor"
+  ad_domain_name                      = "mydomain.com"
+  ad_domain_guid                      = "12345678-1234-1234-1234-123456789012"
+  ad_domain_sid                       = "S-1-5-21-123456789-123456789-123456789"
+  ad_storage_sid                      = "S-1-5-21-123456789-123456789-123456789-1001"
+  ad_forest_name                      = "mydomain.com"
+  ad_netbios_domain_name              = "MYDOMAIN"
+
+  tags = {
+    Environment = "production"
+    Purpose     = "complete-storage"
+    Owner       = "platform-team"
+  }
+}
+
+# Output examples
+output "static_website_url" {
+  description = "URL of the static website"
+  value       = module.static_website_storage.static_website_url
+}
+
+output "storage_account_endpoints" {
+  description = "Storage account endpoints"
+  value = {
+    blob  = module.basic_storage.primary_blob_endpoint
+    web   = module.static_website_storage.primary_web_endpoint
+    file  = module.basic_storage.primary_file_endpoint
+    queue = module.basic_storage.primary_queue_endpoint
+    table = module.basic_storage.primary_table_endpoint
+  }
+}
