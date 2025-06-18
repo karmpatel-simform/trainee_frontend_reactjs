@@ -45,6 +45,16 @@ jobs:
         id: upload
         uses: actions/upload-artifact@v4
         with:
-          name: static-site-build-${{ steps.version.outputs.build_version }}
+          name: static-site-build
           path: ./dist
+          retention-days: 30
+      
+      - name: Save build version to file
+        run: echo "${{ steps.version.outputs.build_version }}" > build_version.txt
+      
+      - name: Upload build version
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-version
+          path: build_version.txt
           retention-days: 30
