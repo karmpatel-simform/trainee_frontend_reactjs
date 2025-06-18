@@ -40,20 +40,6 @@ jobs:
         with:
           terraform_wrapper: false
       
-      - name: List files for debugging
-        run: |
-          echo "Repository root contents:"
-          ls -la
-          echo "Terraform directory contents:"
-          ls -la terraform/
-          echo "Terraform files found:"
-          find terraform/ -name "*.tf" -type f
-
-      
-      - name: Azure CLI Login with ARM credentials
-        run: |
-          az login --service-principal -u $ARM_CLIENT_ID -p $ARM_CLIENT_SECRET --tenant $ARM_TENANT_ID
-      
       - name: Terraform Init
         working-directory: terraform
         run: terraform init
@@ -66,10 +52,20 @@ jobs:
       - name: Terraform Plan
         working-directory: terraform
         run: terraform plan
+        env:
+          ARM_CLIENT_ID: ${{ secrets.ARM_CLIENT_ID }}
+          ARM_CLIENT_SECRET: ${{ secrets.ARM_CLIENT_SECRET }}
+          ARM_SUBSCRIPTION_ID: ${{ secrets.ARM_SUBSCRIPTION_ID }}
+          ARM_TENANT_ID: ${{ secrets.ARM_TENANT_ID }}
       
       - name: Terraform Apply
         working-directory: terraform
         run: terraform apply -auto-approve
+        env:
+          ARM_CLIENT_ID: ${{ secrets.ARM_CLIENT_ID }}
+          ARM_CLIENT_SECRET: ${{ secrets.ARM_CLIENT_SECRET }}
+          ARM_SUBSCRIPTION_ID: ${{ secrets.ARM_SUBSCRIPTION_ID }}
+          ARM_TENANT_ID: ${{ secrets.ARM_TENANT_ID }}
       
       - name: Get Terraform Outputs
         id: tf_outputs
@@ -77,11 +73,22 @@ jobs:
         run: |
           echo "account_name=$(terraform output -raw storage_account_name)" >> $GITHUB_OUTPUT
           echo "account_key=$(terraform output -raw storage_account_primary_access_key)" >> $GITHUB_OUTPUT
+        env:
+          ARM_CLIENT_ID: ${{ secrets.ARM_CLIENT_ID }}
+          ARM_CLIENT_SECRET: ${{ secrets.ARM_CLIENT_SECRET }}
+          ARM_SUBSCRIPTION_ID: ${{ secrets.ARM_SUBSCRIPTION_ID }}
+          ARM_TENANT_ID: ${{ secrets.ARM_TENANT_ID }}
       
-      - name: Setup Azure CLI
-        uses: azure/CLI@v2
-        with:
-          azcliversion: latest
+      - name: Install Azure CLI
+        run: |
+          curl -sL https://aka.ms/InstallAzureCLIDeb | sudo bash
+      
+      - name: Azure CLI Login
+        run: |
+          az login --service-principal \
+            --username "${{ secrets.ARM_CLIENT_ID }}" \
+            --password "${{ secrets.ARM_CLIENT_SECRET }}" \
+            --tenant "${{ secrets.ARM_TENANT_ID }}"
       
       - name: Deploy static files to Azure Blob Storage
         run: |
