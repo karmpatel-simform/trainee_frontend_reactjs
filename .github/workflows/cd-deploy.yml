@@ -16,10 +16,11 @@ jobs:
 
     steps:
       - name: Download build artifact
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: static-site-build-${{ github.event.workflow_run.outputs.build_version }}
           path: ./dist
+
 
       - name: Checkout Terraform code
         uses: actions/checkout@v3
