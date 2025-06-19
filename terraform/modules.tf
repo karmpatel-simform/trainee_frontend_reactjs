@@ -14,6 +14,3 @@ module "storoage_account" {
   static_website_index_document     = "index.html"
   static_website_error_404_document = "404.html"
 }
-
-
-
