@@ -11,9 +11,9 @@ terraform {
   required_version = ">=1.0"
 
   backend "azurerm" {
-    resource_group_name  = "IdentityGroup"
-    storage_account_name = "identitystorage12"
-    container_name       = "storage1"
+    resource_group_name  = "2vmComm"
+    storage_account_name = "accs312"
+    container_name       = "blobst1"
     key                  = "terraform.tfstate"
   }
 }
