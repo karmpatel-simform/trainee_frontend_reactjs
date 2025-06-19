@@ -47,6 +47,7 @@ jobs:
   terraform:
     name: 'Terraform Infrastructure'
     runs-on: ubuntu-latest
+    needs: build
     environment: production
     outputs:
       storage_account_link: ${{ steps.terraform_output.outputs.storage_account_link }}
@@ -56,10 +57,11 @@ jobs:
     - name: Checkout
       uses: actions/checkout@v4
 
-    - name: Azure Login
-      uses: azure/login@v1
+    - uses: azure/login@v2
       with:
-        creds: ${{ secrets.ARM_CREDS }}
+        client-id: ${{ secrets.ARM_CLIENT_ID }}
+        tenant-id: ${{ secrets.ARM_TENANT_ID }}
+        subscription-id: ${{ secrets.ARM_SUBSCRIPTION_ID }}
 
     - name: Setup Terraform
       uses: hashicorp/setup-terraform@v3
@@ -135,10 +137,11 @@ jobs:
           echo "Build artifacts not found" > ${{ env.BUILD_ARTIFACT_PATH }}/README.txt
         fi
 
-    - name: Azure Login
-      uses: azure/login@v1
+    - uses: azure/login@v2
       with:
-        creds: ${{ secrets.ARM_CREDS }}
+        client-id: ${{ secrets.ARM_CLIENT_ID }}
+        tenant-id: ${{ secrets.ARM_TENANT_ID }}
+        subscription-id: ${{ secrets.ARM_SUBSCRIPTION_ID }}
 
     - name: Upload to Azure Storage
       run: |
