@@ -19,9 +19,7 @@ terraform {
 }
 
 provider "azurerm" {
-  features {
-
-  }
+  features {}
 }
 
 provider "null" {
