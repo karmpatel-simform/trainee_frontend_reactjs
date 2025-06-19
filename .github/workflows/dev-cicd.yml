@@ -55,11 +55,6 @@ jobs:
         retention-days: 30
         if-no-files-found: error
 
-    - name: Display build info
-      run: |
-        echo "Build completed successfully"
-        ls -la ./dist/
-
   terraform:
     name: 'Terraform Infrastructure'
     runs-on: ubuntu-latest
@@ -73,7 +68,7 @@ jobs:
     - name: Checkout
       uses: actions/checkout@v4
 
-    - name: Azure Login
+    - name: Azure Login via OIDC
       uses: azure/login@v2
       with:
         client-id: ${{ secrets.ARM_CLIENT_ID }}
@@ -98,18 +93,18 @@ jobs:
       working-directory: ${{ env.WORKING_DIRECTORY }}
       env:
         ARM_CLIENT_ID: ${{ secrets.ARM_CLIENT_ID }}
-        ARM_CLIENT_SECRET: ${{ secrets.ARM_CLIENT_SECRET }}
         ARM_SUBSCRIPTION_ID: ${{ secrets.ARM_SUBSCRIPTION_ID }}
         ARM_TENANT_ID: ${{ secrets.ARM_TENANT_ID }}
+        ARM_USE_OIDC: true
       run: terraform plan -out=tfplan
 
     - name: Terraform Apply
       working-directory: ${{ env.WORKING_DIRECTORY }}
       env:
         ARM_CLIENT_ID: ${{ secrets.ARM_CLIENT_ID }}
-        ARM_CLIENT_SECRET: ${{ secrets.ARM_CLIENT_SECRET }}
         ARM_SUBSCRIPTION_ID: ${{ secrets.ARM_SUBSCRIPTION_ID }}
         ARM_TENANT_ID: ${{ secrets.ARM_TENANT_ID }}
+        ARM_USE_OIDC: true
       run: terraform apply -auto-approve tfplan
 
     - name: Get Terraform Outputs
@@ -117,9 +112,9 @@ jobs:
       working-directory: ${{ env.WORKING_DIRECTORY }}
       env:
         ARM_CLIENT_ID: ${{ secrets.ARM_CLIENT_ID }}
-        ARM_CLIENT_SECRET: ${{ secrets.ARM_CLIENT_SECRET }}
         ARM_SUBSCRIPTION_ID: ${{ secrets.ARM_SUBSCRIPTION_ID }}
         ARM_TENANT_ID: ${{ secrets.ARM_TENANT_ID }}
+        ARM_USE_OIDC: true
       run: |
         echo "storage_account_link=$(terraform output -raw storage_account_link)" >> $GITHUB_OUTPUT
         echo "storage_account_name=$(terraform output -raw storage_account_name)" >> $GITHUB_OUTPUT
@@ -131,9 +126,6 @@ jobs:
     needs: [build, terraform]
     environment: production
     steps:
-    - name: Checkout
-      uses: actions/checkout@v4
-
     - name: Download Build Artifacts
       uses: actions/download-artifact@v4
       with:
@@ -155,7 +147,7 @@ jobs:
           exit 1
         fi
 
-    - name: Azure Login
+    - name: Azure Login via OIDC
       uses: azure/login@v2
       with:
         client-id: ${{ secrets.ARM_CLIENT_ID }}
