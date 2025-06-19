@@ -15,8 +15,6 @@ terraform {
     storage_account_name = "identitystorage12"
     container_name       = "storage1"
     key                  = "terraform.tfstate"
-    tenant_id            = "your_tenant_id"
-    subscription_id      = "your_subscription_id"
   }
 }
 
