@@ -1,16 +1,16 @@
 name: CD Pipeline - Deploy to Azure Storage
- 
+
 on:
   workflow_run:
     workflows: ["CI - Build Application"]
     types:
       - completed
- 
+
 env:
   TERRAFORM_VERSION: '1.6.0'
   WORKING_DIRECTORY: './terraform'
   BUILD_ARTIFACT_PATH: './dist'
- 
+
 jobs:
   terraform:
     name: 'Terraform Infrastructure'
@@ -28,7 +28,7 @@ jobs:
       uses: azure/login@v1
       with:
         creds: ${{ secrets.ARM_CREDS }}
- 
+
     - name: Setup Terraform
       uses: hashicorp/setup-terraform@v3
       with:
@@ -39,28 +39,43 @@ jobs:
       working-directory: ${{ env.WORKING_DIRECTORY }}
       run: |
         terraform init
- 
+
     - name: Terraform Validate
       working-directory: ${{ env.WORKING_DIRECTORY }}
       run: terraform validate
- 
+
     - name: Terraform Plan
       working-directory: ${{ env.WORKING_DIRECTORY }}
+      env:
+        ARM_CLIENT_ID: ${{ secrets.ARM_CLIENT_ID }}
+        ARM_CLIENT_SECRET: ${{ secrets.ARM_CLIENT_SECRET }}
+        ARM_SUBSCRIPTION_ID: ${{ secrets.ARM_SUBSCRIPTION_ID }}
+        ARM_TENANT_ID: ${{ secrets.ARM_TENANT_ID }}
       run: |
         terraform plan -out=tfplan
- 
+
     - name: Terraform Apply
       working-directory: ${{ env.WORKING_DIRECTORY }}
+      env:
+        ARM_CLIENT_ID: ${{ secrets.ARM_CLIENT_ID }}
+        ARM_CLIENT_SECRET: ${{ secrets.ARM_CLIENT_SECRET }}
+        ARM_SUBSCRIPTION_ID: ${{ secrets.ARM_SUBSCRIPTION_ID }}
+        ARM_TENANT_ID: ${{ secrets.ARM_TENANT_ID }}
       run: terraform apply -auto-approve tfplan
- 
+
     - name: Get Terraform Outputs
       id: terraform_output
       working-directory: ${{ env.WORKING_DIRECTORY }}
+      env:
+        ARM_CLIENT_ID: ${{ secrets.ARM_CLIENT_ID }}
+        ARM_CLIENT_SECRET: ${{ secrets.ARM_CLIENT_SECRET }}
+        ARM_SUBSCRIPTION_ID: ${{ secrets.ARM_SUBSCRIPTION_ID }}
+        ARM_TENANT_ID: ${{ secrets.ARM_TENANT_ID }}
       run: |
         echo "storage_account_link=$(terraform output -raw storage_account_link)" >> $GITHUB_OUTPUT
         echo "storage_account_name=$(terraform output -raw storage_account_name)" >> $GITHUB_OUTPUT
         echo "resource_group_name=$(terraform output -raw resource_group_name)" >> $GITHUB_OUTPUT
- 
+
   deploy:
     name: 'Deploy to Azure Storage'
     runs-on: ubuntu-latest
@@ -69,14 +84,14 @@ jobs:
     steps:
     - name: Checkout
       uses: actions/checkout@v4
- 
+
     - name: Download Build Artifacts
       uses: actions/download-artifact@v4
       with:
         name: build-artifacts
         path: ${{ env.BUILD_ARTIFACT_PATH }}
       continue-on-error: true
- 
+
     - name: Check Build Directory
       run: |
         if [ -d "${{ env.BUILD_ARTIFACT_PATH }}" ]; then
@@ -87,12 +102,12 @@ jobs:
           mkdir -p ${{ env.BUILD_ARTIFACT_PATH }}
           echo "Build artifacts not found" > ${{ env.BUILD_ARTIFACT_PATH }}/README.txt
         fi
- 
+
     - name: Azure Login
       uses: azure/login@v1
       with:
         creds: ${{ secrets.ARM_CREDS }}
- 
+
     - name: Upload to Azure Storage
       run: |
         # Upload all files from build directory
@@ -101,7 +116,7 @@ jobs:
           --destination '$web' \
           --source ${{ env.BUILD_ARTIFACT_PATH }} \
           --overwrite
- 
+
     - name: Display Website URL
       run: |
         echo "Website deployed to: ${{ needs.terraform.outputs.storage_account_link }}"
