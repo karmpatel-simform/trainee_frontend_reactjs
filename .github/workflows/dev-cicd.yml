@@ -1,17 +1,21 @@
 name: CI - Build Application
- 
+
 on:
   push:
     branches: [main]
   pull_request:
     branches: [main]
- 
+
+permissions:
+  id-token: write
+  contents: read
+
 env:
   NODE_VERSION: '20'
   TERRAFORM_VERSION: '1.6.0'
   WORKING_DIRECTORY: './terraform'
   BUILD_ARTIFACT_PATH: './dist'
- 
+
 jobs:
   build:
     name: 'Build Application'
@@ -19,26 +23,38 @@ jobs:
     steps:
     - name: Checkout
       uses: actions/checkout@v4
- 
+
     - name: Setup Node.js
       uses: actions/setup-node@v4
       with:
         node-version: ${{ env.NODE_VERSION }}
         cache: 'npm'
- 
+
     - name: Install dependencies
       run: npm install
- 
+
     - name: Build application
       run: npm run build
- 
+
+    - name: Verify build output
+      run: |
+        echo "Checking build output..."
+        if [ -d "./dist" ]; then
+          echo "Build directory exists"
+          ls -la ./dist/
+        else
+          echo "ERROR: Build directory not found!"
+          exit 1
+        fi
+
     - name: Upload build artifacts
       uses: actions/upload-artifact@v4
       with:
         name: build-artifacts
         path: ./dist/
         retention-days: 30
- 
+        if-no-files-found: error
+
     - name: Display build info
       run: |
         echo "Build completed successfully"
@@ -57,7 +73,8 @@ jobs:
     - name: Checkout
       uses: actions/checkout@v4
 
-    - uses: azure/login@v2
+    - name: Azure Login
+      uses: azure/login@v2
       with:
         client-id: ${{ secrets.ARM_CLIENT_ID }}
         tenant-id: ${{ secrets.ARM_TENANT_ID }}
@@ -71,8 +88,7 @@ jobs:
 
     - name: Terraform Init
       working-directory: ${{ env.WORKING_DIRECTORY }}
-      run: |
-        terraform init
+      run: terraform init
 
     - name: Terraform Validate
       working-directory: ${{ env.WORKING_DIRECTORY }}
@@ -85,8 +101,7 @@ jobs:
         ARM_CLIENT_SECRET: ${{ secrets.ARM_CLIENT_SECRET }}
         ARM_SUBSCRIPTION_ID: ${{ secrets.ARM_SUBSCRIPTION_ID }}
         ARM_TENANT_ID: ${{ secrets.ARM_TENANT_ID }}
-      run: |
-        terraform plan -out=tfplan
+      run: terraform plan -out=tfplan
 
     - name: Terraform Apply
       working-directory: ${{ env.WORKING_DIRECTORY }}
@@ -113,7 +128,7 @@ jobs:
   deploy:
     name: 'Deploy to Azure Storage'
     runs-on: ubuntu-latest
-    needs: terraform
+    needs: [build, terraform]
     environment: production
     steps:
     - name: Checkout
@@ -124,20 +139,24 @@ jobs:
       with:
         name: build-artifacts
         path: ${{ env.BUILD_ARTIFACT_PATH }}
-      continue-on-error: true
 
-    - name: Check Build Directory
+    - name: Verify artifacts downloaded
       run: |
+        echo "Checking downloaded artifacts..."
         if [ -d "${{ env.BUILD_ARTIFACT_PATH }}" ]; then
-          echo "Build directory exists"
+          echo "Build directory exists after download"
           ls -la ${{ env.BUILD_ARTIFACT_PATH }}
+          if [ -z "$(ls -A ${{ env.BUILD_ARTIFACT_PATH }})" ]; then
+            echo "ERROR: Build directory is empty!"
+            exit 1
+          fi
         else
-          echo "Build directory not found, creating empty directory"
-          mkdir -p ${{ env.BUILD_ARTIFACT_PATH }}
-          echo "Build artifacts not found" > ${{ env.BUILD_ARTIFACT_PATH }}/README.txt
+          echo "ERROR: Build directory not found after download!"
+          exit 1
         fi
 
-    - uses: azure/login@v2
+    - name: Azure Login
+      uses: azure/login@v2
       with:
         client-id: ${{ secrets.ARM_CLIENT_ID }}
         tenant-id: ${{ secrets.ARM_TENANT_ID }}
@@ -145,12 +164,13 @@ jobs:
 
     - name: Upload to Azure Storage
       run: |
-        # Upload all files from build directory
+        echo "Uploading files to storage account: ${{ needs.terraform.outputs.storage_account_name }}"
         az storage blob upload-batch \
           --account-name ${{ needs.terraform.outputs.storage_account_name }} \
           --destination '$web' \
           --source ${{ env.BUILD_ARTIFACT_PATH }} \
-          --overwrite
+          --overwrite \
+          --auth-mode login
 
     - name: Display Website URL
       run: |
