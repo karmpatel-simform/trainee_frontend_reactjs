@@ -85,12 +85,12 @@ jobs:
       with:
         creds: ${{ secrets.AZURE_CREDENTIALS }}
 
-    - name: Azure CLI Login (Service Principal)
-      run: |
-        az login --service-principal \
-          --username ${{ secrets.ARM_CLIENT_ID }} \
-          --password ${{ secrets.ARM_CLIENT_SECRET }} \
-          --tenant ${{ secrets.ARM_TENANT_ID }}
+    # - name: Azure CLI Login (Service Principal)
+    #   run: |
+    #     az login --service-principal \
+    #       --username ${{ secrets.ARM_CLIENT_ID }} \
+    #       --password ${{ secrets.ARM_CLIENT_SECRET }} \
+    #       --tenant ${{ secrets.ARM_TENANT_ID }}
 
 
     - name: Terraform Init
